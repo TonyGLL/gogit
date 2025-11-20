@@ -5,5 +5,11 @@ import (
 )
 
 func main() {
+	gogit.RegisterInitCommand(gogit.RootCmd)
+	gogit.RegisterCommitCommand(gogit.RootCmd)
+	gogit.RegisterAddCommand(gogit.RootCmd)
+	gogit.RegisterLogCommand(gogit.RootCmd)
+	gogit.RegisterStatusCommand(gogit.RootCmd)
+
 	gogit.Execute()
 }

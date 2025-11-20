@@ -12,7 +12,7 @@ var commitMessage string
 var addCommitCmd = &cobra.Command{
 	Use:   "commit",
 	Short: "Add commit message to gogit repository",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if err := gogit.AddCommit(&commitMessage); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -20,8 +20,11 @@ var addCommitCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(addCommitCmd)
+func RegisterCommitCommand(root *cobra.Command) {
+	root.AddCommand(addCommitCmd)
 	addCommitCmd.Flags().StringVarP(&commitMessage, "message", "m", "", "Commit message (mandatory)")
-	addCommitCmd.MarkFlagRequired("message")
+	if err := addCommitCmd.MarkFlagRequired("message"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }

@@ -11,7 +11,7 @@ import (
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show commit status",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if err := gogit.StatusRepo(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -19,6 +19,6 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(statusCmd)
+func RegisterStatusCommand(root *cobra.Command) {
+	root.AddCommand(statusCmd)
 }

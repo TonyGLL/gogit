@@ -12,7 +12,7 @@ var initCmd = &cobra.Command{
 	Use:   "init [directory]",
 	Short: "Creates a new gogit repository",
 	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		targetDir := "."
 		if len(args) > 0 {
 			targetDir = args[0]
@@ -25,6 +25,6 @@ var initCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(initCmd)
+func RegisterInitCommand(root *cobra.Command) {
+	root.AddCommand(initCmd)
 }
