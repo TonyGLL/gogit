@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TonyGLL/go-git/internal/gogit"
+	"github.com/TonyGLL/gogit/internal/gogit"
 	"github.com/spf13/cobra"
 )
 

@@ -1,4 +1,4 @@
-module github.com/TonyGLL/go-git
+module github.com/TonyGLL/gogit
 
 go 1.22.2
 
