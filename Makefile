@@ -20,3 +20,7 @@ log: build
 
 status: build
 	./${APP_EXECUTABLE} status
+
+lint: ## Runs the linter (golangci-lint) to analyze the code.
+	@echo "==> Linting code with golangci-lint..."
+	@golangci-lint run

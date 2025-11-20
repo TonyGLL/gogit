@@ -11,7 +11,7 @@ import (
 var logCmd = &cobra.Command{
 	Use:   "log",
 	Short: "Show commits logs",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if err := gogit.LogRepo(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -19,6 +19,6 @@ var logCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(logCmd)
+func RegisterLogCommand(root *cobra.Command) {
+	root.AddCommand(logCmd)
 }

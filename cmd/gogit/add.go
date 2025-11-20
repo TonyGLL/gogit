@@ -15,7 +15,7 @@ var addCmd = &cobra.Command{
 When a directory is specified, it recursively adds all files within that
 directory, excluding the .gogit directory itself.`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		pathToAdd := args[0]
 
 		if err := gogit.Add(pathToAdd); err != nil {
@@ -27,6 +27,6 @@ directory, excluding the .gogit directory itself.`,
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(addCmd)
+func RegisterAddCommand(root *cobra.Command) {
+	root.AddCommand(addCmd)
 }
