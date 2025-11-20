@@ -19,11 +19,11 @@ GoGit is a simplified implementation of Git, the distributed version control sys
 
 1.  Clone the repository:
     ```sh
-    git clone https://github.com/TonyGLL/go-git.git
+    git clone https://github.com/TonyGLL/gogit.git
     ```
 2.  Navigate to the project directory:
     ```sh
-    cd go-git
+    cd gogit
     ```
 3.  Build the project:
     ```sh

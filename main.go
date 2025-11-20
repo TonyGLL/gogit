@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/TonyGLL/go-git/cmd/gogit"
+	"github.com/TonyGLL/gogit/cmd/gogit"
 )
 
 func main() {
