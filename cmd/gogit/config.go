@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listConfig string
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Configure user name and email (like git config --global)",
@@ -24,7 +23,10 @@ Examples:
 			fmt.Println("  user.email  Your email address")
 			fmt.Println("  list  	   Your list config")
 			fmt.Println()
-			cmd.Usage()
+			if err := cmd.Usage(); err != nil {
+				fmt.Printf("Error: %v\n", err)
+				return
+			}
 			return
 		}
 
