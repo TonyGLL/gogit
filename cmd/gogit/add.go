@@ -22,8 +22,6 @@ directory, excluding the .gogit directory itself.`,
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-
-		fmt.Println("File(s) added successfully.")
 	},
 }
 
