@@ -10,143 +10,157 @@ import (
 	"sync"
 )
 
-// Add handles adding files to the repository's index.
+// Add stages files into the index (equivalent to `git add`).
+// It walks the given path, respects .gogitignore, computes SHA-1 hashes,
+// writes new blob objects when needed, and updates the index only for changed files.
 func Add(path string) error {
+	// Load ignore rules
 	ignorePatterns, err := readGogitignore()
 	if err != nil {
-		return fmt.Errorf("error reading .gogitignore: %w", err)
+		return fmt.Errorf("reading .gogitignore: %w", err)
 	}
-	// 1. Read the index file once into memory.
+
+	// Load current index into memory
 	indexEntries, err := ReadIndex()
 	if err != nil {
-		return fmt.Errorf("error reading index: %w", err)
+		return fmt.Errorf("reading index: %w", err)
 	}
 
-	pathsChan := make(chan string, 100) // Buffered channel to prevent the walker from blocking immediately
+	// Channels
+	pathsChan := make(chan string, 100)       // Files discovered by walker
+	resultsChan := make(chan FileResult, 100) // Results from workers
 
-	// Use a WaitGroup to wait for all workers to finish
+	// Worker pool
 	var wgWorkers sync.WaitGroup
-
-	// Start a fixed number of workers (e.g., 4)
-	numWorkers := 4
-	for i := 1; i <= numWorkers; i++ {
+	numWorkers := 4 // Adjust based on CPU cores / typical workload
+	for range numWorkers {
 		wgWorkers.Add(1)
-		go worker(pathsChan, indexEntries, &wgWorkers)
+		go worker(pathsChan, resultsChan, &wgWorkers)
 	}
 
-	// Start a goroutine to walk the directory and close the channel when done
-	var wgWalker sync.WaitGroup
-	wgWalker.Add(1)
+	// Single collector goroutine — the ONLY one that writes to indexEntries
+	var wgCollector sync.WaitGroup
+	wgCollector.Add(1)
 	go func() {
-		defer wgWalker.Done()
-		discoverFiles(pathsChan, ignorePatterns, path)
+		defer wgCollector.Done()
+		for result := range resultsChan {
+			if result.Err != nil {
+				log.Printf("Failed to stage %s: %v", result.Path, result.Err)
+				continue
+			}
+			// Only update index if hash changed
+			if oldHash, exists := indexEntries[result.Path]; !exists || oldHash != result.Hash {
+				indexEntries[result.Path] = result.Hash
+			}
+		}
 	}()
 
-	// Wait for the walker to complete its job of sending paths
-	wgWalker.Wait()
+	// Start directory walker (closes pathsChan when done)
+	go func() {
+		_ = discoverFiles(pathsChan, ignorePatterns, path)
+	}()
 
-	// Wait for all workers to finish processing all paths from the closed channel
+	// Wait for workers to finish processing all paths
 	wgWorkers.Wait()
+	close(resultsChan) // No more results → collector exits
+	wgCollector.Wait() // Wait for collector to finish updating the map
 
-	// 3. Write the updated index back to the file once.
+	// Persist updated index to disk
 	if err := WriteIndex(indexEntries); err != nil {
-		return fmt.Errorf("error writing index file: %w", err)
+		return fmt.Errorf("writing index: %w", err)
 	}
 
 	return nil
 }
 
-func worker(pathsChan <-chan string, indexEntries map[string]string, wg *sync.WaitGroup) {
+// FileResult is the structure sent from workers to the collector
+type FileResult struct {
+	Path string
+	Hash string
+	Err  error
+}
+
+// worker reads files, computes hashes, writes blob objects if needed.
+// It never touches the shared index map directly.
+func worker(pathsChan <-chan string, resultsChan chan<- FileResult, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for path := range pathsChan {
-		if err := processFile(path, indexEntries); err != nil {
-			log.Printf("Error processing file %s: %v\n", path, err)
+	for filePath := range pathsChan {
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			resultsChan <- FileResult{Path: filePath, Err: fmt.Errorf("read: %w", err)}
+			continue
+		}
+
+		blobHash, buffer, err := HashObject(content)
+		if err != nil {
+			resultsChan <- FileResult{Path: filePath, Err: fmt.Errorf("hash: %w", err)}
+			continue
+		}
+
+		// Ensure the blob object exists in .gogit/objects/
+		firstTwo := blobHash[:2]
+		rest := blobHash[2:]
+		objectPath := filepath.Join(ObjectsPath, firstTwo, rest)
+
+		if _, err := os.Stat(objectPath); os.IsNotExist(err) {
+			objDir := filepath.Join(ObjectsPath, firstTwo)
+			if err := os.MkdirAll(objDir, 0755); err != nil {
+				resultsChan <- FileResult{Path: filePath, Err: fmt.Errorf("mkdir: %w", err)}
+				continue
+			}
+			if err := os.WriteFile(objectPath, buffer.Bytes(), 0644); err != nil {
+				resultsChan <- FileResult{Path: filePath, Err: fmt.Errorf("write object: %w", err)}
+				continue
+			}
+		} else if err != nil {
+			resultsChan <- FileResult{Path: filePath, Err: fmt.Errorf("stat object: %w", err)}
+			continue
+		}
+
+		// Success — send result
+		resultsChan <- FileResult{
+			Path: filePath,
+			Hash: blobHash,
+			Err:  nil,
 		}
 	}
 }
 
-func discoverFiles(pathsChan chan string, ignorePatterns []string, cmdfilePath string) error {
-	err := filepath.WalkDir(cmdfilePath, func(path string, info fs.DirEntry, err error) error {
+// discoverFiles walks the directory tree and sends regular file paths to pathsChan.
+// It respects .gogitignore and never stages anything inside .gogit.
+func discoverFiles(pathsChan chan<- string, ignorePatterns []string, rootPath string) error {
+	defer close(pathsChan)
+
+	return filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			// Handle error from WalkDir (e.g., permission denied)
-			log.Printf("Error walking path %s: %v\n", path, err)
-			return err
+			log.Printf("Access error %s: %v", path, err)
+			return nil // Continue walking
 		}
 
-		// Ignore the .gogit directory
-		if info.IsDir() && info.Name() == ".gogit" {
-			return filepath.SkipDir
-		}
-		if info.IsDir() && info.Name() == ".git" {
+		// Always skip the .gogit directory completely
+		if d.IsDir() && (d.Name() == ".gogit" || d.Name() == ".git") {
 			return filepath.SkipDir
 		}
 
-		// Check against .gogitignore patterns
-		ignored, err := isIgnored(path, ignorePatterns)
-		if err != nil {
-			return fmt.Errorf("error checking ignore patterns for %s: %w", path, err)
-		}
-		if ignored {
-			if info.IsDir() {
-				return filepath.SkipDir // Skip directory and its contents
+		// Apply .gogitignore rules
+		if ignored, _ := isIgnored(path, ignorePatterns); ignored {
+			if d.IsDir() {
+				return filepath.SkipDir
 			}
-			return nil // Skip file
-		}
-
-		// Ignore other directories (that are not explicitly ignored by .gogitignore)
-		if info.IsDir() {
 			return nil
 		}
 
-		// Normalize path for consistent checks
-		normalizedPath := filepath.ToSlash(path)
-		if strings.HasPrefix(normalizedPath, ".gogit/") {
+		// Only stage regular files
+		if d.IsDir() {
 			return nil
 		}
 
-		if !info.IsDir() {
-			// Send file path to the channel
-			pathsChan <- path
+		// Extra safety: never stage files inside .gogit
+		if strings.HasPrefix(filepath.ToSlash(path), ".gogit/") {
+			return nil
 		}
+
+		pathsChan <- path
 		return nil
 	})
-	if err != nil {
-		log.Printf("Error during filepath.WalkDir: %v\n", err)
-	}
-	close(pathsChan) // Close the channel to signal workers that no more paths are coming
-
-	return nil
-}
-
-// processFile handles hashing a single file and adding it to the in-memory index map.
-func processFile(filePath string, indexEntries map[string]string) error {
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("error reading file %s: %w", filePath, err)
-	}
-
-	blobHash, buffer, err := HashObject(content)
-	if err != nil {
-		return fmt.Errorf("error hashing file: %w", err)
-	}
-
-	firstTwo := blobHash[:2]
-	rest := blobHash[2:]
-	objectPath := filepath.Join(ObjectsPath, firstTwo, rest)
-
-	// Check if object exists. If not, create it.
-	if _, err := os.Stat(objectPath); os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Join(ObjectsPath, firstTwo), 0755); err != nil {
-			return fmt.Errorf("error creating directory %s: %w", filepath.Join(ObjectsPath, firstTwo), err)
-		}
-		if err := os.WriteFile(objectPath, buffer.Bytes(), 0644); err != nil {
-			return fmt.Errorf("error writing blob object to %s: %w", objectPath, err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("error checking object existence at %s: %w", objectPath, err)
-	}
-
-	// Update the in-memory map
-	indexEntries[filePath] = blobHash
-	return nil
 }
