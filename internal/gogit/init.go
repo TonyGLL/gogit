@@ -49,7 +49,7 @@ func InitRepo(path string) error {
 	}
 
 	// Create .gogitignore file
-	gogitignoreContent := []byte("")
+	gogitignoreContent := []byte(".gogit\n.git\nmaind")
 	if err := os.WriteFile(IgnorePath, gogitignoreContent, 0644); err != nil {
 		return fmt.Errorf("error creating .gogitignore file: %w", err)
 	}

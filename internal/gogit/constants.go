@@ -11,7 +11,7 @@ var (
 	HeadPath         = filepath.Join(RepoPath, "HEAD")
 	RefHeadsPath     = filepath.Join(RepoPath, "refs/heads")
 	RefHeadsMainPath = filepath.Join(RepoPath, "refs/heads/main")
-	IgnorePath       = filepath.Join(RepoPath, ".gogitignore")
+	IgnorePath       = filepath.Join(".gogitignore")
 	ConfigPath       = filepath.Join("~/.gogitconfig")
 
 	ROOT          = ".gogit"
