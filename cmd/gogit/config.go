@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var listConfig string
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Configure user name and email (like git config --global)",
@@ -21,6 +22,7 @@ Examples:
 			fmt.Println("\nSupported keys:")
 			fmt.Println("  user.name   Your full name")
 			fmt.Println("  user.email  Your email address")
+			fmt.Println("  list  	   Your list config")
 			fmt.Println()
 			cmd.Usage()
 			return
@@ -39,6 +41,12 @@ Examples:
 		case "user.email":
 			if err := gogit.SetEmail(value); err != nil {
 				fmt.Printf("Error saving email: %v\n", err)
+				return
+			}
+
+		case "list":
+			if err := gogit.GetConfig(value); err != nil {
+				fmt.Printf("Error getting config: %v\n", err)
 				return
 			}
 

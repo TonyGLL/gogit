@@ -27,6 +27,9 @@ config-name: build
 config-email: build
 	./${APP_EXECUTABLE} config user.email "tonygllambia@gmail.com"
 
+config-list-user: build
+	./${APP_EXECUTABLE} config list user
+
 lint: ## Runs the linter (golangci-lint) to analyze the code.
 	@echo "==> Linting code with golangci-lint..."
 	@golangci-lint run

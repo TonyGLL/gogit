@@ -45,23 +45,28 @@ func GetGoGitStyleConfig(section string) (GitUserConfig, error) {
 		cfg = ini.Empty()
 	}
 
-	sec, err := cfg.GetSection(section)
-	if err != nil {
-		return GitUserConfig{}, err
+	switch section {
+	case "user":
+		sec, err := cfg.GetSection(section)
+		if err != nil {
+			return GitUserConfig{}, err
+		}
+
+		nameKey, err := sec.GetKey("name")
+		if err != nil {
+			return GitUserConfig{}, err
+		}
+
+		emailKey, err := sec.GetKey("email")
+		if err != nil {
+			return GitUserConfig{}, err
+		}
+
+		return GitUserConfig{
+			Name:  nameKey.String(),
+			Email: emailKey.String(),
+		}, nil
 	}
 
-	nameKey, err := sec.GetKey("name")
-	if err != nil {
-		return GitUserConfig{}, err
-	}
-
-	emailKey, err := sec.GetKey("email")
-	if err != nil {
-		return GitUserConfig{}, err
-	}
-
-	return GitUserConfig{
-		Name:  nameKey.String(),
-		Email: emailKey.String(),
-	}, nil
+	return GitUserConfig{}, nil
 }
