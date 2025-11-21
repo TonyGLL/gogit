@@ -49,10 +49,21 @@ func InitRepo(path string) error {
 	}
 
 	// Create .gogitignore file
-	gogitignorePath := filepath.Join(path, ".gogitignore")
 	gogitignoreContent := []byte("")
-	if err := os.WriteFile(gogitignorePath, gogitignoreContent, 0644); err != nil {
+	if err := os.WriteFile(IgnorePath, gogitignoreContent, 0644); err != nil {
 		return fmt.Errorf("error creating .gogitignore file: %w", err)
+	}
+
+	// Create .gogitignore file
+	gogitCContent := "[credential]\n\thelper = store\n[init]\n\tdefaultBranch = master\n"
+	gogitconfigContent := []byte(gogitCContent)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("cannot get user home directory: %w", err)
+	}
+	configPath := filepath.Join(home, GLOBAL_CONFIG)
+	if err := os.WriteFile(configPath, gogitconfigContent, 0644); err != nil {
+		return fmt.Errorf("error creating .gogitconfig file: %w", err)
 	}
 
 	fmt.Printf("Initializing empty GoGit repository in %s/%s\n", wd, RepoPath)

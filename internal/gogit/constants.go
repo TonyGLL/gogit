@@ -1,6 +1,8 @@
 package gogit
 
-import "path/filepath"
+import (
+	"path/filepath"
+)
 
 var (
 	RepoPath         = filepath.Join(".", ".gogit")
@@ -9,10 +11,13 @@ var (
 	HeadPath         = filepath.Join(RepoPath, "HEAD")
 	RefHeadsPath     = filepath.Join(RepoPath, "refs/heads")
 	RefHeadsMainPath = filepath.Join(RepoPath, "refs/heads/main")
+	IgnorePath       = filepath.Join(RepoPath, ".gogitignore")
+	ConfigPath       = filepath.Join("~/.gogitconfig")
 
-	ROOT      = ".gogit"
-	OBJECTS   = "objects"
-	REF_HEADS = "refs/heads"
-	HEAD      = "HEAD"
-	INDEX     = "index"
+	ROOT          = ".gogit"
+	OBJECTS       = "objects"
+	REF_HEADS     = "refs/heads"
+	HEAD          = "HEAD"
+	INDEX         = "index"
+	GLOBAL_CONFIG = ".gogitconfig"
 )
