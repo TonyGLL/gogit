@@ -2,9 +2,12 @@ package gogit
 
 import (
 	"fmt"
+	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // Add handles adding files to the repository's index.
@@ -19,70 +22,98 @@ func Add(path string) error {
 		return fmt.Errorf("error reading index: %w", err)
 	}
 
-	if path == "." {
-		// Walk the current directory
-		err = filepath.Walk(".", func(filePath string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
+	pathsChan := make(chan string, 100) // Buffered channel to prevent the walker from blocking immediately
 
-			// Ignore the .gogit directory
-			if info.IsDir() && info.Name() == ".gogit" {
-				return filepath.SkipDir
-			}
-			if info.IsDir() && info.Name() == ".git" {
-				return filepath.SkipDir
-			}
+	// Use a WaitGroup to wait for all workers to finish
+	var wgWorkers sync.WaitGroup
 
-			// Check against .gogitignore patterns
-			ignored, err := isIgnored(filePath, ignorePatterns)
-			if err != nil {
-				return fmt.Errorf("error checking ignore patterns for %s: %w", filePath, err)
-			}
-			if ignored {
-				if info.IsDir() {
-					return filepath.SkipDir // Skip directory and its contents
-				}
-				return nil // Skip file
-			}
-
-			// Ignore other directories (that are not explicitly ignored by .gogitignore)
-			if info.IsDir() {
-				return nil
-			}
-
-			// Normalize path for consistent checks
-			normalizedPath := filepath.ToSlash(filePath)
-			if strings.HasPrefix(normalizedPath, ".gogit/") {
-				return nil
-			}
-
-			// 2. Process each file and update the in-memory map
-			fmt.Printf("Adding '%s'\n", filePath)
-			return processFile(filePath, indexEntries)
-		})
-		if err != nil {
-			return err
-		}
-	} else {
-		// If it's not ".", treat it as a single file or directory
-		info, err := os.Stat(path)
-		if err != nil {
-			return fmt.Errorf("error stating path %s: %w", path, err)
-		}
-		if info.IsDir() {
-			return fmt.Errorf("adding single directories is not supported, use 'add .' instead")
-		}
-
-		if err := processFile(path, indexEntries); err != nil {
-			return err
-		}
+	// Start a fixed number of workers (e.g., 4)
+	numWorkers := 4
+	for i := 1; i <= numWorkers; i++ {
+		wgWorkers.Add(1)
+		go worker(pathsChan, indexEntries, &wgWorkers)
 	}
+
+	// Start a goroutine to walk the directory and close the channel when done
+	var wgWalker sync.WaitGroup
+	wgWalker.Add(1)
+	go func() {
+		defer wgWalker.Done()
+		discoverFiles(pathsChan, ignorePatterns, path)
+	}()
+
+	// Wait for the walker to complete its job of sending paths
+	wgWalker.Wait()
+
+	// Wait for all workers to finish processing all paths from the closed channel
+	wgWorkers.Wait()
 
 	// 3. Write the updated index back to the file once.
 	if err := WriteIndex(indexEntries); err != nil {
 		return fmt.Errorf("error writing index file: %w", err)
 	}
+
+	return nil
+}
+
+func worker(pathsChan <-chan string, indexEntries map[string]string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for path := range pathsChan {
+		if err := processFile(path, indexEntries); err != nil {
+			log.Printf("Error processing file %s: %v\n", path, err)
+		}
+	}
+}
+
+func discoverFiles(pathsChan chan string, ignorePatterns []string, cmdfilePath string) error {
+	err := filepath.WalkDir(cmdfilePath, func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			// Handle error from WalkDir (e.g., permission denied)
+			log.Printf("Error walking path %s: %v\n", path, err)
+			return err
+		}
+
+		// Ignore the .gogit directory
+		if info.IsDir() && info.Name() == ".gogit" {
+			return filepath.SkipDir
+		}
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		// Check against .gogitignore patterns
+		ignored, err := isIgnored(path, ignorePatterns)
+		if err != nil {
+			return fmt.Errorf("error checking ignore patterns for %s: %w", path, err)
+		}
+		if ignored {
+			if info.IsDir() {
+				return filepath.SkipDir // Skip directory and its contents
+			}
+			return nil // Skip file
+		}
+
+		// Ignore other directories (that are not explicitly ignored by .gogitignore)
+		if info.IsDir() {
+			return nil
+		}
+
+		// Normalize path for consistent checks
+		normalizedPath := filepath.ToSlash(path)
+		if strings.HasPrefix(normalizedPath, ".gogit/") {
+			return nil
+		}
+
+		if !info.IsDir() {
+			// Send file path to the channel
+			pathsChan <- path
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("Error during filepath.WalkDir: %v\n", err)
+	}
+	close(pathsChan) // Close the channel to signal workers that no more paths are coming
 
 	return nil
 }
