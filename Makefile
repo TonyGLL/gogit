@@ -21,6 +21,12 @@ log: build
 status: build
 	./${APP_EXECUTABLE} status
 
+config-name: build
+	./${APP_EXECUTABLE} config user.name "TonyGLL"
+
+config-email: build
+	./${APP_EXECUTABLE} config user.email "tonygllambia@gmail.com"
+
 lint: ## Runs the linter (golangci-lint) to analyze the code.
 	@echo "==> Linting code with golangci-lint..."
 	@golangci-lint run

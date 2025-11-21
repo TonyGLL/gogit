@@ -55,7 +55,7 @@ func HashTree(files map[string]string) (string, []byte, error) {
 	return treeHash, treeContent, nil
 }
 
-func HashCommit(treeHash, parentHash, author, message string) (string, []byte, error) {
+func HashCommit(treeHash, parentHash, author, email, message string) (string, []byte, error) {
 	// 1. Use a buffer to efficiently build the commit content.
 	var contentBuffer bytes.Buffer
 
@@ -65,7 +65,7 @@ func HashCommit(treeHash, parentHash, author, message string) (string, []byte, e
 	if parentHash != "" {                              // Only add parent if it exists
 		fmt.Fprintf(&contentBuffer, "parent %s\n", parentHash)
 	}
-	fmt.Fprintf(&contentBuffer, "author %s\n", author)
+	fmt.Fprintf(&contentBuffer, "author %s <%s>\n", author, email)
 	// We use the ISO 8601 format (RFC3339 in Go) and UTC for consistency.
 	fmt.Fprintf(&contentBuffer, "date %s\n", time.Now().UTC().Format(time.RFC3339))
 

@@ -10,6 +10,7 @@ func main() {
 	gogit.RegisterAddCommand(gogit.RootCmd)
 	gogit.RegisterLogCommand(gogit.RootCmd)
 	gogit.RegisterStatusCommand(gogit.RootCmd)
+	gogit.RegisterConfigCommand(gogit.RootCmd)
 
 	gogit.Execute()
 }

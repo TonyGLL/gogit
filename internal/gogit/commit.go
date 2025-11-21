@@ -10,52 +10,13 @@ import (
 	"time"
 )
 
-// ReadCommit reads a commit object from the repository and returns a Commit struct.
-func ReadCommit(hash string) (*Commit, error) {
-	firstTwo := hash[:2]
-	rest := hash[2:]
-
-	currentObjectPath := fmt.Sprintf("%s/%s/%s", ObjectsPath, firstTwo, rest)
-
-	file, err := os.Open(currentObjectPath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var commit Commit
-	commit.Hash = hash
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "tree ") {
-			commit.Tree = strings.TrimSpace(strings.TrimPrefix(line, "tree "))
-		} else if strings.HasPrefix(line, "parent ") {
-			commit.Parent = strings.TrimSpace(strings.TrimPrefix(line, "parent "))
-		} else if strings.HasPrefix(line, "author ") {
-			commit.Author = strings.TrimSpace(strings.TrimPrefix(line, "author "))
-		} else if strings.HasPrefix(line, "date ") {
-			dateStr := strings.TrimSpace(strings.TrimPrefix(line, "date "))
-			commit.Date, _ = time.Parse(time.RFC3339, dateStr)
-		} else if line == "" {
-			break // End of headers
-		}
-	}
-
-	for scanner.Scan() {
-		commit.Message += scanner.Text() + "\n"
-	}
-	commit.Message = strings.TrimSpace(commit.Message)
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return &commit, nil
-}
-
 func AddCommit(message *string) error {
+	goGitUserConfig, err := GetGoGitStyleConfig("user")
+	if err != nil {
+		log.Printf("No gogit user config")
+		return nil
+	}
+
 	indexMap, err := ReadIndex()
 	if err != nil {
 		return err
@@ -114,9 +75,8 @@ func AddCommit(message *string) error {
 		}
 	}
 
-	authorName := "TonyGLL"
 	// Call HashCommit with the treeHash
-	commitHash, commitContent, err := HashCommit(treeHash, parentCommitHash, authorName, *message)
+	commitHash, commitContent, err := HashCommit(treeHash, parentCommitHash, goGitUserConfig.Name, goGitUserConfig.Email, *message)
 	if err != nil {
 		return fmt.Errorf("error hashing commit: %w", err)
 	}
@@ -141,11 +101,50 @@ func AddCommit(message *string) error {
 		return fmt.Errorf("error updating branch reference file: %w", err)
 	}
 
-	// Clear the index after a successful commit
-	// err = os.WriteFile(IndexPath, []byte(""), 0644)
-	// if err != nil {
-	// 	return fmt.Errorf("error clearing index file: %w", err)
-	// }
-
 	return nil
+}
+
+// ReadCommit reads a commit object from the repository and returns a Commit struct.
+func ReadCommit(hash string) (*Commit, error) {
+	firstTwo := hash[:2]
+	rest := hash[2:]
+
+	currentObjectPath := fmt.Sprintf("%s/%s/%s", ObjectsPath, firstTwo, rest)
+
+	file, err := os.Open(currentObjectPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var commit Commit
+	commit.Hash = hash
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "tree ") {
+			commit.Tree = strings.TrimSpace(strings.TrimPrefix(line, "tree "))
+		} else if strings.HasPrefix(line, "parent ") {
+			commit.Parent = strings.TrimSpace(strings.TrimPrefix(line, "parent "))
+		} else if strings.HasPrefix(line, "author ") {
+			commit.Author = strings.TrimSpace(strings.TrimPrefix(line, "author "))
+		} else if strings.HasPrefix(line, "date ") {
+			dateStr := strings.TrimSpace(strings.TrimPrefix(line, "date "))
+			commit.Date, _ = time.Parse(time.RFC3339, dateStr)
+		} else if line == "" {
+			break // End of headers
+		}
+	}
+
+	for scanner.Scan() {
+		commit.Message += scanner.Text() + "\n"
+	}
+	commit.Message = strings.TrimSpace(commit.Message)
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return &commit, nil
 }
