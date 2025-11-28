@@ -30,6 +30,15 @@ config-email: build
 config-list-user: build
 	./${APP_EXECUTABLE} config list user
 
+branch-list: build
+	./${APP_EXECUTABLE} branch
+
+branch-create: build
+	./${APP_EXECUTABLE} branch new-feature
+
+branch-delete: build
+	./${APP_EXECUTABLE} branch -d new-feature
+
 lint: ## Runs the linter (golangci-lint) to analyze the code.
 	@echo "==> Linting code with golangci-lint..."
 	@golangci-lint run
