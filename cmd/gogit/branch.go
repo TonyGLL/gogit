@@ -18,6 +18,10 @@ This command allows you to manage branches effectively.`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if deleteFlag {
+			if len(args) < 1 {
+				fmt.Fprintln(os.Stderr, "error: branch name required for deletion")
+				return // O cmd.Usage()
+			}
 			if err := gogit.DeleteBranch(args[0]); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 			}

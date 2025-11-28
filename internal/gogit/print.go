@@ -1,6 +1,9 @@
 package gogit
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 // PrintCommit prints a commit object with a stylized format.
 func PrintCommit(commit *Commit) {
@@ -57,9 +60,10 @@ func PrintStatus(statusInfo *StatusInfo) {
 	}
 }
 
-func PrintBranches(branchMap map[string]bool) {
-	for branchName, isCurrent := range branchMap {
-		if isCurrent {
+func PrintBranches(branchMap []string, currentBranch string) {
+	sort.Strings(branchMap)
+	for _, branchName := range branchMap {
+		if branchName == currentBranch {
 			fmt.Printf("*%s %s%s\n", ColorGreen, branchName, ColorReset)
 		} else {
 			fmt.Printf("  %s\n", branchName)

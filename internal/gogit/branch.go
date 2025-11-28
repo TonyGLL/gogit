@@ -10,13 +10,12 @@ import (
 )
 
 func ListBranches() error {
-	branchMap := make(map[string]bool)
+	branches := []string{}
 	headRef, err := GetHeadRef()
 	if err != nil {
 		return err
 	}
-	headRefSplitted := strings.Split(headRef["ref:"], "/")
-	currentBranch := headRefSplitted[len(headRefSplitted)-1]
+	currentBranch := strings.TrimPrefix(headRef["ref:"], "refs/heads/")
 	err = filepath.WalkDir(RefHeadsPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			log.Printf("Access error %s: %v", path, err)
@@ -28,26 +27,34 @@ func ListBranches() error {
 			return nil
 		}
 
-		branchName := strings.TrimPrefix(path, RefHeadsPath+"/")
-		if branchName == currentBranch {
-			branchMap[branchName] = true
-		} else {
-			branchMap[branchName] = false
+		branchName, err := filepath.Rel(RefHeadsPath, path)
+		if err != nil {
+			return fmt.Errorf("error getting branch name: %w", err)
 		}
+		branchName = filepath.ToSlash(branchName)
+		branches = append(branches, branchName)
 		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("error listing branches: %w", err)
 	}
 
-	PrintBranches(branchMap)
+	PrintBranches(branches, currentBranch)
 	return nil
 }
 
 func CreateBranch(name string) error {
+	currentHash, err := GetBranchHash()
+	if err != nil {
+		return err
+	}
 
 	branchRefPath := filepath.Join(RefHeadsPath, name)
-	_, err := os.Stat(branchRefPath)
+	if err := os.MkdirAll(filepath.Dir(branchRefPath), 0755); err != nil {
+		return fmt.Errorf("error creating branch directories: %w", err)
+	}
+
+	_, err = os.Stat(branchRefPath)
 	if err == nil {
 		return fmt.Errorf("fatal: a branch named '%s' already exists", name)
 	}
@@ -61,6 +68,13 @@ func CreateBranch(name string) error {
 	}
 	defer branchRefFile.Close()
 
+	_, err = branchRefFile.WriteString(currentHash + "\n")
+	if err != nil {
+		return fmt.Errorf("error writing to branch ref file: %w", err)
+	}
+
+	fmt.Printf("branch '%s' created at %s\n", name, currentHash)
+
 	return nil
 }
 
@@ -69,8 +83,7 @@ func DeleteBranch(name string) error {
 	if err != nil {
 		return err
 	}
-	headRefSplitted := strings.Split(headRef["ref:"], "/")
-	currentBranch := headRefSplitted[len(headRefSplitted)-1]
+	currentBranch := strings.TrimPrefix(headRef["ref:"], "refs/heads/")
 	if name == currentBranch {
 		return fmt.Errorf("error: cannot delete branch '%s' used by worktree at '%s'", name, RepoPath)
 	}
