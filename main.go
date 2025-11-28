@@ -11,6 +11,7 @@ func main() {
 	gogit.RegisterLogCommand(gogit.RootCmd)
 	gogit.RegisterStatusCommand(gogit.RootCmd)
 	gogit.RegisterConfigCommand(gogit.RootCmd)
+	gogit.RegisterBranchCommand(gogit.RootCmd)
 
 	gogit.Execute()
 }

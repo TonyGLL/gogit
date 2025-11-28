@@ -56,3 +56,13 @@ func PrintStatus(statusInfo *StatusInfo) {
 		fmt.Println("\nnothing to commit, working tree clean")
 	}
 }
+
+func PrintBranches(branchMap map[string]bool) {
+	for branchName, isCurrent := range branchMap {
+		if isCurrent {
+			fmt.Printf("*%s %s%s\n", ColorGreen, branchName, ColorReset)
+		} else {
+			fmt.Printf("  %s\n", branchName)
+		}
+	}
+}
