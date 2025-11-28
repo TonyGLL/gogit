@@ -16,7 +16,7 @@ var branchCmd = &cobra.Command{
 	Long: `Create, list, delete, and switch branches in the gogit repository.
 This command allows you to manage branches effectively.`,
 	Args: cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		if deleteFlag {
 			if len(args) < 1 {
 				fmt.Fprintln(os.Stderr, "error: branch name required for deletion")
