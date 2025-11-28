@@ -8,6 +8,9 @@ GoGit is a simplified implementation of Git, the distributed version control sys
 *   **Add files to the staging area:** Track new or modified files to be included in the next commit.
 *   **Commit changes:** Save snapshots of the staging area to the project's history.
 *   **View commit history:** Inspect the log of commits to see the project's evolution.
+*   **Manage branches:** Create, list, and delete branches.
+*   **Configure user information:** Set your name and email for commit attribution.
+*   **Check repository status:** View the status of tracked and untracked files.
 
 ## Getting Started
 
@@ -38,6 +41,12 @@ GoGit provides the following commands:
 *   `gogit add <file>`: Adds a file to the staging area.
 *   `gogit commit -m <message>`: Commits the staged changes.
 *   `gogit log`: Displays the commit history.
+*   `gogit branch`: Lists all branches.
+*   `gogit branch <name>`: Creates a new branch.
+*   `gogit branch -d <name>`: Deletes a branch.
+*   `gogit config user.name <name>`: Sets the user's name.
+*   `gogit config user.email <email>`: Sets the user's email.
+*   `gogit status`: Shows the status of the repository.
 
 ## Contributing
 
