@@ -2,6 +2,7 @@ package gogit
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -132,6 +133,23 @@ func GetBranchHash() (string, error) {
 	}
 
 	return currentHash, nil
+}
+
+func GetTargetBranchHash(branchName string) (string, error) {
+	branchRefPath := fmt.Sprintf("%s/%s", RefHeadsPath, branchName)
+	branchHashFile, err := os.Open(branchRefPath)
+	if err != nil {
+		return "", err
+	}
+	defer branchHashFile.Close()
+
+	var targetHash string
+	brandHashScanner := bufio.NewScanner(branchHashFile)
+	for brandHashScanner.Scan() {
+		targetHash = brandHashScanner.Text()
+	}
+
+	return targetHash, nil
 }
 
 // BuildWorkdirMap walks the repoRoot and returns a map of relative path -> sha1hex.
@@ -312,4 +330,81 @@ func parseGitignore(repoRoot string) ([]string, error) {
 		patterns = append(patterns, trimmedLine)
 	}
 	return patterns, nil
+}
+
+func CheckIfBranchExists(branchName string) (bool, error) {
+	branchRefPath := filepath.Join(RefHeadsPath, branchName)
+	_, err := os.Stat(branchRefPath)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, fmt.Errorf("error checking if branch exists: %w", err)
+}
+
+func ApplyDiffCheckout(currentTreeMap map[string]string, targetTreeMap map[string]string) error {
+	// Files to delete: in current but not in target
+	for path := range currentTreeMap {
+		if _, existsInTarget := targetTreeMap[path]; !existsInTarget {
+			if err := os.Remove(path); err != nil {
+				return fmt.Errorf("error deleting file %s: %w", path, err)
+			}
+		}
+	}
+
+	// Files to add or modify: in target (new or different hash)
+	for path, targetHash := range targetTreeMap {
+		currentHash, existsInCurrent := currentTreeMap[path]
+		if !existsInCurrent || currentHash != targetHash {
+			// Read blob object
+			blobContent, err := readObjectContent(targetHash)
+			if err != nil {
+				return fmt.Errorf("error reading blob object %s: %w", targetHash, err)
+			}
+
+			// Write to working directory
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return fmt.Errorf("error creating directories for %s: %w", path, err)
+			}
+			if err := os.WriteFile(path, blobContent, 0644); err != nil {
+				return fmt.Errorf("error writing file %s: %w", path, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func readObjectContent(objectHash string) ([]byte, error) {
+	objectPath := filepath.Join(ObjectsPath, objectHash)
+	content, err := os.ReadFile(objectPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading object %s: %w", objectHash, err)
+	}
+
+	// The content starts after the first null byte.
+	nullIndex := bytes.IndexByte(content, 0)
+	if nullIndex == -1 {
+		return nil, fmt.Errorf("invalid object format for %s", objectHash)
+	}
+
+	return content[nullIndex+1:], nil
+}
+
+func UpdateHeadRef(branchName string) error {
+	headFile, err := os.OpenFile(HeadPath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening HEAD for writing: %w", err)
+	}
+	defer headFile.Close()
+
+	_, err = headFile.WriteString(fmt.Sprintf("ref: refs/heads/%s\n", branchName))
+	if err != nil {
+		return fmt.Errorf("error writing to HEAD file: %w", err)
+	}
+
+	return nil
 }

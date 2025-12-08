@@ -43,23 +43,24 @@ func ListBranches() error {
 	return nil
 }
 
-func CreateBranch(name string) error {
+func CreateBranch(branchName string) error {
 	currentHash, err := GetBranchHash()
 	if err != nil {
 		return err
 	}
 
-	branchRefPath := filepath.Join(RefHeadsPath, name)
-	if err := os.MkdirAll(filepath.Dir(branchRefPath), 0755); err != nil {
-		return fmt.Errorf("error creating branch directories: %w", err)
+	// Check if branch already exists
+	branchExist, err := CheckIfBranchExists(branchName)
+	if err != nil {
+		return fmt.Errorf("error checking if branch exists: %w", err)
+	}
+	if branchExist {
+		return fmt.Errorf("fatal: a branch named '%s' already exists", branchName)
 	}
 
-	_, err = os.Stat(branchRefPath)
-	if err == nil {
-		return fmt.Errorf("fatal: a branch named '%s' already exists", name)
-	}
-	if !os.IsNotExist(err) {
-		return fmt.Errorf("error checking if branch exists: %w", err)
+	branchRefPath := filepath.Join(RefHeadsPath, branchName)
+	if err := os.MkdirAll(filepath.Dir(branchRefPath), 0755); err != nil {
+		return fmt.Errorf("error creating branch directories: %w", err)
 	}
 
 	branchRefFile, err := os.Create(branchRefPath)
@@ -73,7 +74,7 @@ func CreateBranch(name string) error {
 		return fmt.Errorf("error writing to branch ref file: %w", err)
 	}
 
-	fmt.Printf("branch '%s' created at %s\n", name, currentHash)
+	fmt.Printf("branch '%s' created at %s\n", branchName, currentHash)
 
 	return nil
 }
