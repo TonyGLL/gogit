@@ -17,13 +17,7 @@ var checkCmd = &cobra.Command{
 If the branch does not exist, it can be created with the -b flag.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if bFlag {
-			if err := gogit.CreateBranch(args[0]); err != nil {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
-				os.Exit(1)
-			}
-		}
-		if err := gogit.CheckoutBranch(args[0]); err != nil {
+		if err := gogit.CheckoutBranch(args[0], bFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}

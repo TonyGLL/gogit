@@ -42,7 +42,7 @@ branch-delete: build
 checkout-develop: build
 	./${APP_EXECUTABLE} checkout develop
 
-checkout-develop: build
+checkout-new-develop: build
 	./${APP_EXECUTABLE} checkout -b develop
 
 lint: ## Runs the linter (golangci-lint) to analyze the code.
