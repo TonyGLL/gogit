@@ -313,3 +313,16 @@ func parseGitignore(repoRoot string) ([]string, error) {
 	}
 	return patterns, nil
 }
+
+func CheckIfBranchExists(branchName string) (bool, error) {
+	branchRefPath := filepath.Join(RefHeadsPath, branchName)
+	_, err := os.Stat(branchRefPath)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, fmt.Errorf("error checking if branch exists: %w", err)
+}

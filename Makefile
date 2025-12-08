@@ -39,11 +39,11 @@ branch-create: build
 branch-delete: build
 	./${APP_EXECUTABLE} branch -d new-feature
 
-checkout-feature: build
-	./${APP_EXECUTABLE} checkout new-feature
+checkout-develop: build
+	./${APP_EXECUTABLE} checkout develop
 
-checkout-new-feature: build
-	./${APP_EXECUTABLE} checkout -b new-feature
+checkout-develop: build
+	./${APP_EXECUTABLE} checkout -b develop
 
 lint: ## Runs the linter (golangci-lint) to analyze the code.
 	@echo "==> Linting code with golangci-lint..."
