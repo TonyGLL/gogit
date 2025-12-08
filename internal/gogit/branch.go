@@ -49,11 +49,6 @@ func CreateBranch(branchName string) error {
 		return err
 	}
 
-	branchRefPath := filepath.Join(RefHeadsPath, branchName)
-	if err := os.MkdirAll(filepath.Dir(branchRefPath), 0755); err != nil {
-		return fmt.Errorf("error creating branch directories: %w", err)
-	}
-
 	// Check if branch already exists
 	branchExist, err := CheckIfBranchExists(branchName)
 	if err != nil {
@@ -61,6 +56,11 @@ func CreateBranch(branchName string) error {
 	}
 	if branchExist {
 		return fmt.Errorf("fatal: a branch named '%s' already exists", branchName)
+	}
+
+	branchRefPath := filepath.Join(RefHeadsPath, branchName)
+	if err := os.MkdirAll(filepath.Dir(branchRefPath), 0755); err != nil {
+		return fmt.Errorf("error creating branch directories: %w", err)
 	}
 
 	branchRefFile, err := os.Create(branchRefPath)
