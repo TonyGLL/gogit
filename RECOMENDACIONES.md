@@ -6,8 +6,6 @@ Este documento contiene una lista de recomendaciones para mejorar `gogit`, tanto
 
 Actualmente, `gogit` cuenta con los comandos básicos para inicializar un repositorio, añadir archivos, hacer commits y ver el estado y el historial. Para que `gogit` se asemeje más a Git, se podrían implementar los siguientes comandos:
 
-*   **`gogit branch`**: Para listar, crear o eliminar ramas. Esto es fundamental para poder trabajar en diferentes funcionalidades de forma aislada.
-*   **`gogit checkout`**: Para cambiar entre ramas o restaurar archivos del árbol de trabajo. Este comando es clave para la gestión de ramas.
 *   **`gogit merge`**: Para fusionar los cambios de una rama a otra. Este es uno de los comandos más importantes de Git y un gran reto de implementación.
 *   **`gogit diff`**: Para mostrar las diferencias entre los commits, el commit y el árbol de trabajo, etc.
 *   **`gogit reset`**: Para deshacer cambios, moviendo el `HEAD` a un commit específico.
