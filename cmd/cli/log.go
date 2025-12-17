@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewLogCmd(app *App) *cobra.Command {
+func NewLogCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "log",
 		Short: "Show commits logs",

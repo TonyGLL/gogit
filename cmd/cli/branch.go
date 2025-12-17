@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewBranchCmd(app *App) *cobra.Command {
+func NewBranchCmd() *cobra.Command {
 	var deleteFlag bool
 
 	cmd := &cobra.Command{

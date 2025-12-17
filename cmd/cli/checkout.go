@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCheckoutCmd(app *App) *cobra.Command {
+func NewCheckoutCmd() *cobra.Command {
 	var bFlag bool
 
 	return &cobra.Command{

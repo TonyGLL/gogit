@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCommitCmd(app *App) *cobra.Command {
+func NewCommitCmd() *cobra.Command {
 	var msg string
 
 	cmd := &cobra.Command{
@@ -23,7 +23,10 @@ func NewCommitCmd(app *App) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&msg, "message", "m", "", "Mensaje del commit")
-	cmd.MarkFlagRequired("message")
+	if err := cmd.MarkFlagRequired("message"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	return cmd
 }

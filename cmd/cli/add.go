@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewAddCmd(app *App) *cobra.Command {
+func NewAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add <file|directory>",
 		Short: "Add a file or directory to the gogit repository",

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewConfigCmd(app *App) *cobra.Command {
+func NewConfigCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "config",
 		Short: "Configure user name and email (like git config --global)",

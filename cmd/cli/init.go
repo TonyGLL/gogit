@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewInitCmd(app *App) *cobra.Command {
+func NewInitCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init [directory]",
 		Short: "Creates a new gogit repository",

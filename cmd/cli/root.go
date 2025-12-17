@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewRootCmd(app *App) *cobra.Command {
+func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "gogit",
 		Short: "gogit - a simplified Git replica written in Go",
@@ -14,14 +14,14 @@ func NewRootCmd(app *App) *cobra.Command {
 	}
 
 	rootCmd.AddCommand(
-		NewInitCmd(app),
-		NewAddCmd(app),
-		NewCommitCmd(app),
-		NewLogCmd(app),
-		NewStatusCmd(app),
-		NewConfigCmd(app),
-		NewCheckoutCmd(app),
-		NewBranchCmd(app),
+		NewInitCmd(),
+		NewAddCmd(),
+		NewCommitCmd(),
+		NewLogCmd(),
+		NewStatusCmd(),
+		NewConfigCmd(),
+		NewCheckoutCmd(),
+		NewBranchCmd(),
 	)
 
 	return rootCmd
